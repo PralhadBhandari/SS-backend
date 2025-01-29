@@ -2,6 +2,7 @@ const Post = require('../models/post');
 const User = require('../models/user');
 const Comment = require('../models/comment');
 const Reply = require('../models/reply');
+const { cloudinary } = require('../config/cloudinary');
 
 // Toggle like on a post
 exports.toggleLike = async (req, res) => {
@@ -183,37 +184,72 @@ exports.getPostById = async (req, res) => {
 
 
 // Keep other controller methods
-exports.createPost = async (req, res) => {
+
+exports.createPost = async (req, res ) => {
   try {
-    console.log("req : ", req.body)
-    const { caption, address, location } = req.body;
-    let postMedia = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : req.body.postMedia; // Generate file URL
- 
-    console.log("postMedia : ", postMedia)
-    // Check if the user exists
-    const user = await User.findById(req.body.user);
-    if (!user) {
-      return res.status(400).send({ message: 'User not found' });
+    const { caption , address, location , user } = req.body ;
+
+    // check if user exists 
+    const existingUser = await User.findById(user);
+    if(!existingUser){
+      return res.status(400).json({ message: 'User not found' });
     }
-    console.log("user : ", user)
 
-    // Create the post
+    // upload image to cloudinary 
+    let postmedia = '';
+    if(req.file){
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder : 'StreetsnapTest/Posts',
+        // here we can define height width etc etc ...
+      })
+      postmedia = result.secure_url;
+    }
+
     const post = new Post({
-      user: req.body.user,
-      postMedia,
-      caption,
-      address,
-      location: typeof location === "string" ? JSON.parse(location) : location, // Assuming location is sent as a JSON string
-    });
-
-    console.log("post : ", post)
+      user, postMedia, caption , address,
+      location : typeof location === 'string' ? JSON.parse(location) : location,
+    })
 
     await post.save();
-    res.status(201).send({ message: 'Post created successfully', post });
+    res.status(201).json({ message: 'Post created successfully', post });
+    
   } catch (error) {
-    res.status(400).send({ message: 'Error creating post', error: error.message });
+    res.status(500).send({ message: 'Error creating post', error: error.message });
+    
   }
-};
+}
+
+// exports.createPost = async (req, res) => {
+//   try {
+//     console.log("req : ", req.body)
+//     const { caption, address, location } = req.body;
+//     let postMedia = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : req.body.postMedia; // Generate file URL
+ 
+//     console.log("postMedia : ", postMedia)
+//     // Check if the user exists
+//     const user = await User.findById(req.body.user);
+//     if (!user) {
+//       return res.status(400).send({ message: 'User not found' });
+//     }
+//     console.log("user : ", user)
+
+//     // Create the post
+//     const post = new Post({
+//       user: req.body.user,
+//       postMedia,
+//       caption,
+//       address,
+//       location: typeof location === "string" ? JSON.parse(location) : location, // Assuming location is sent as a JSON string
+//     });
+
+//     console.log("post : ", post)
+
+//     await post.save();
+//     res.status(201).send({ message: 'Post created successfully', post });
+//   } catch (error) {
+//     res.status(400).send({ message: 'Error creating post', error: error.message });
+//   }
+// };
 
 
 
@@ -244,18 +280,40 @@ exports.updatePost = async (req, res) => {
   }
 };
 
+
+
 // Delete a post
+// exports.deletePost = async (req, res) => {
+//   try {
+//     const post = await Post.findByIdAndDelete(req.params.id);
+
+//     if (!post) {
+//       return res.status(404).json({ message: 'Post not found' });
+//     }
+
+//     res.status(200).json({ message: 'Post deleted successfully' });
+//   } catch (error) {
+//     console.error('Error deleting post:', error);
+//     res.status(500).json({ message: 'Error deleting post', error: error.message });
+//   }
+// };
+
 exports.deletePost = async (req, res) => {
   try {
-    const post = await Post.findByIdAndDelete(req.params.id);
-
+    const post = await Post.findById(req.params.id);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
+    // Delete image from Cloudinary
+    if (post.postMedia) {
+      const publicId = post.postMedia.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`StreetsnapTest/Posts/${publicId}`);
+    }
+
+    await Post.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Post deleted successfully' });
   } catch (error) {
-    console.error('Error deleting post:', error);
     res.status(500).json({ message: 'Error deleting post', error: error.message });
   }
 };
