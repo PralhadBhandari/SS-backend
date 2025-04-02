@@ -1,27 +1,30 @@
 const cloudinary = require('cloudinary').v2;
-const  { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 require('dotenv').config();
 
-// Configure cloudinary
+// Configure Cloudinary
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-})
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
+// Set up Cloudinary Storage
 const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder : 'StreetsnapTest',
-        format: async (req, file) => 'jpej',
-        public_id: (req, res) => `${Date.now()}-${file.originalname.split('.')[0]}`,
-    }
-})
+  cloudinary: cloudinary,
+  params: {
+    folder: 'StreetsnapTest',
+    format: async (req, file) => file.mimetype.split('/')[1], // Dynamically detect file type
+    public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`, // Fixed file reference
+  }
+});
 
-// const upload = multer ({ storage: storage });
+// Initialize Multer with Cloudinary Storage
+const upload = multer({ storage });
 
-// module.exports = { upload , cloudinary }
+module.exports = { upload, cloudinary };
+
 
 
 // const cloudinary = require('cloudinary').v2;
@@ -47,6 +50,6 @@ const storage = new CloudinaryStorage({
 // });
 
 // Initialize Multer with Cloudinary Storage
-const upload = multer({ storage });
+// const upload = multer({ storage });
 
-module.exports = upload;
+// module.exports = upload;

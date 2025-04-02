@@ -3,7 +3,9 @@ const router = express.Router();
 const postController = require('../controllers/postController');
 const authenticate = require('../middlewares/auth'); // Import middleware
 // const upload = require('../middlewares/multerConfig'); // Import multer middleware
-const upload = require('../config/cloudinary');
+// const upload = require('../config/cloudinary');
+const { upload } = require('../config/cloudinary'); 
+
 
 // CRUD routes for posts
 router.post('/', authenticate, upload.single('postMedia'), postController.createPost); // Create a new post with media

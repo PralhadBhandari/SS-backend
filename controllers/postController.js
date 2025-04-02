@@ -2,7 +2,10 @@ const Post = require('../models/post');
 const User = require('../models/user');
 const Comment = require('../models/comment');
 const Reply = require('../models/reply');
-const { cloudinary } = require('../config/cloudinary');
+// const { cloudinary } = require('../config/cloudinary');
+const cloudinaryConfig = require('../config/cloudinary');
+const cloudinary = cloudinaryConfig.cloudinary;
+
 
 // Toggle like on a post
 exports.toggleLike = async (req, res) => {
@@ -188,7 +191,6 @@ exports.getPostById = async (req, res) => {
 exports.createPost = async (req, res ) => {
   try {
     const { caption , address, location , user } = req.body ;
-
     // check if user exists 
     const existingUser = await User.findById(user);
     if(!existingUser){
@@ -196,13 +198,13 @@ exports.createPost = async (req, res ) => {
     }
 
     // upload image to cloudinary 
-    let postmedia = '';
+    let postMedia = '';
     if(req.file){
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder : 'StreetsnapTest/Posts',
         // here we can define height width etc etc ...
       })
-      postmedia = result.secure_url;
+      postMedia = result.secure_url;
     }
 
     const post = new Post({
@@ -215,7 +217,6 @@ exports.createPost = async (req, res ) => {
     
   } catch (error) {
     res.status(500).send({ message: 'Error creating post', error: error.message });
-    
   }
 }
 
@@ -258,7 +259,20 @@ exports.createPost = async (req, res ) => {
 // Update a post with media upload
 exports.updatePost = async (req, res) => {
   try {
-    let postMedia = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : null; // Generate file URL
+    const { caption , address, location, user } = req.body
+    
+    const existingUser = await User.findById(user);
+
+    if(!existingUser){
+      res.status(400).json({ message : 'User not found'});
+    }
+ 
+    let postMedia = '';
+    if(req.file){
+
+    }
+
+    // let postMedia = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : null; // Generate file URL
 
     const updatedPostData = {
       ...req.body,
